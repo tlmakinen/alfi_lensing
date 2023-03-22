@@ -1,0 +1,23 @@
+{
+    "datadir": "/data80/makinen/borg_sims_fixed/training_data/",
+    "savedir": "/data80/makinen/borg_sims_fixed/imnn_runs/two_param4/",
+    "modeldir": "/data80/makinen/borg_sims_fixed/imnn_runs/two_param4/",
+    "priordir": "/data80/makinen/borg_sims_fixed/prior_data/",
+    "target_path": "/data80/nporqueres/borg_sims_fixed/",
+    "patience": 2000,
+    "filters":  20,
+    "plotdir": "/home/makinen/repositories/IMNN_vs_BORG/plots/",
+    "do_noise": 1,
+    "noise_scale": 1,
+    "net_scaling": 0.005,
+    "act": "almost_leaky",
+
+    "borg_data_configs": { 
+        "fiducial_path": "/data80/nporqueres/borg_sims_fixed/fiducial/",
+        "omegaM_path": "/data80/nporqueres/borg_sims_fixed/omegaM/",
+        "sigma8_path": "/data80/nporqueres/borg_sims_fixed/sigma8/",
+        "prior_path": "/data80/nporqueres/borg_sims_fixed/new_uniform_prior/",
+        "omegaM_stepsize": 0.05,
+        "sigma8_stepsize": 0.015
+    }
+}
