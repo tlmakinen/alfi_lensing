@@ -268,6 +268,7 @@ s8_fid = 0.800
 
 dataset = sys.argv[2]
 
+num_prior_sims = 10000
 
 
 
@@ -291,12 +292,12 @@ if dataset == "fiducial":
 elif dataset == "derivatives":
 
     print("doing derivatives")
-    dervs = load_derivatives(np.arange(0, 250), omegam_path, sigma8_path)
-    val_dervs = load_derivatives(np.arange(250, 500), omegam_path, sigma8_path)
+    dervs = load_derivatives(np.arange(0, 250), omegam_path, sigma8_path, d_Om=omegam_stepsize)
+    val_dervs = load_derivatives(np.arange(250, 500), omegam_path, sigma8_path, d_Om=omegam_stepsize)
 
 
-    np.save(outdir + 'noisefree_derv', dervs)
-    np.save(outdir + 'noisefree_val_derv', val_dervs)
+    np.save(outdir + 'noisefree_derv_smallstep', dervs)
+    np.save(outdir + 'noisefree_val_derv_smallstep', val_dervs)
 
 elif dataset == "h0":
 
@@ -330,7 +331,7 @@ else:
     for s in simnames:
         seed_index.append(s[4:-3])
 
-    seed_index = np.array(seed_index).astype(int)
+    seed_index = np.array(seed_index).astype(int)[:num_prior_sims]
 
     dat, params = load_delfi_data(seed_index=seed_index, 
                             sim_fnames=None, 

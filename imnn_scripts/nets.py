@@ -207,6 +207,8 @@ class CNNRes3D(nn.Module):
         dbg = self.do_big_convs
         if self.act == "almost_leaky":
            act = almost_leaky
+        elif self.act == "gelu":
+           act = nn.gelu
         else:
            act = nn.elu
 
@@ -374,4 +376,109 @@ class IncpetNet3DExplicit(nn.Module):
         x = nn.Conv(self.out_shape, (1,)*3, 1)(x)
         x = x.reshape(-1)
         
+        return x
+    
+
+
+class ConvBlock(nn.Module):
+      """Conv block submodule"""
+      filters: int
+      strides: int
+      dims: int
+      num_convs: int=3
+      #input_shape: Sequence[int]
+
+      @nn.compact
+      def __call__(self, x):
+
+          act = nn.swish
+
+          x = nn.Conv(features=self.filters, kernel_size=(1,)*self.dims, strides=None)(x)
+          #x = act(x1)
+          x = nn.Conv(features=self.filters, kernel_size=(3,)*self.dims, strides=None)(x)
+          #x = nn.LayerNorm()(x)
+          x = act(x)
+          #x += x
+          x = nn.Conv(features=self.filters, kernel_size=(3,)*self.dims, strides=self.strides)(x)
+          return x
+
+
+
+class CNN_Unet(nn.Module):
+      """A CNN with UNet embedding"""
+      filters: int=10
+      out_shape: int=2
+      div_factor: float=0.005
+      
+      @nn.compact
+      def __call__(self, x):
+          act = nn.swish
+          fs = self.filters
+
+          dims = 3
+          # get inputs to nice dynamic range
+          x /= self.div_factor
+
+          # do a shallow UNet
+          x1 = ConvBlock(fs, strides=(1,2,2), dims=dims)(x)
+          x1 = act(x1)
+          x2 = ConvBlock(fs, strides=(1,2,2), dims=dims)(x1)
+          x2 = act(x2)
+          x = ConvBlock(fs, strides=(1,2,2), dims=dims)(x2) # bottleneck
+          x  = nn.ConvTranspose(features=fs, kernel_size=(3,3,3), strides=(1,2,2))(x)
+          x  = jnp.concatenate([x,x2], -1)
+          x  = nn.ConvTranspose(features=fs, kernel_size=(3,3,3), strides=(1,2,2))(x)
+          x  = jnp.concatenate([x, x1], -1) # back to original resolution
+
+          # now do the compressor
+          x = ConvBlock(fs, strides=4, dims=3)(x) # down to 8
+          x = act(x)
+          x = ConvBlock(fs, strides=4, dims=3)(x) # down to 2
+          x = act(x)
+          x = ConvBlock(fs, strides=2, dims=3)(x) # down to 1
+          x = act(x)
+          x = nn.Conv(features=self.out_shape, kernel_size=(1,)*dims, strides=None)(x)
+          x = x.reshape(-1)
+          return x
+      
+
+class CNN_Unet2(nn.Module):
+    """A CNN with UNet embedding"""
+    filters: int=10
+    out_shape: int=2
+    div_factor: float=0.005
+    
+    @nn.compact
+    def __call__(self, x):
+        act = nn.swish
+        fs = self.filters
+
+        dims = 3
+        # get inputs to nice dynamic range
+        x /= self.div_factor
+
+        # do a shallow UNet
+        x1 = ConvBlock(fs, strides=(1,2,2), dims=dims)(x)
+        x1 = act(x1)
+        x2 = ConvBlock(fs, strides=(1,2,2), dims=dims)(x1)
+        x2 = act(x2)
+        x3 = ConvBlock(fs, strides=(1,2,2), dims=dims)(x2)
+        x3 = act(x3)
+        x  = ConvBlock(fs, strides=(1,2,2), dims=dims)(x3) # bottleneck
+        x  = nn.ConvTranspose(features=fs, kernel_size=(3,3,3), strides=(1,2,2))(x)
+        x  = jnp.concatenate([x,x3], -1)
+        x  = nn.ConvTranspose(features=fs, kernel_size=(3,3,3), strides=(1,2,2))(x)
+        x  = jnp.concatenate([x,x2], -1)
+        x  = nn.ConvTranspose(features=fs, kernel_size=(3,3,3), strides=(1,2,2))(x)
+        x  = jnp.concatenate([x, x1], -1) # back to original resolution
+
+        # now do the compressor
+        x = ConvBlock(fs, strides=4, dims=3)(x) # down to 8
+        x = act(x)
+        x = ConvBlock(fs, strides=4, dims=3)(x) # down to 2
+        x = act(x)
+        x = ConvBlock(fs, strides=2, dims=3)(x) # down to 1
+        x = act(x)
+        x = nn.Conv(features=self.out_shape, kernel_size=(1,)*dims, strides=None)(x)
+        x = x.reshape(-1)
         return x
