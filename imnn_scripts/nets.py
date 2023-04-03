@@ -431,11 +431,11 @@ class CNN_Unet(nn.Module):
           x  = jnp.concatenate([x, x1], -1) # back to original resolution
 
           # now do the compressor
-          x = ConvBlock(fs, strides=4, dims=3)(x) # down to 8
+          x = ConvBlock(fs, strides=(1,4,4), dims=3)(x) # down to 8
           x = act(x)
-          x = ConvBlock(fs, strides=4, dims=3)(x) # down to 2
+          x = ConvBlock(fs, strides=(2,4,4), dims=3)(x) # down to 2
           x = act(x)
-          x = ConvBlock(fs, strides=2, dims=3)(x) # down to 1
+          x = ConvBlock(fs, strides=(2,2,2), dims=3)(x) # down to 1
           x = act(x)
           x = nn.Conv(features=self.out_shape, kernel_size=(1,)*dims, strides=None)(x)
           x = x.reshape(-1)
@@ -473,11 +473,11 @@ class CNN_Unet2(nn.Module):
         x  = jnp.concatenate([x, x1], -1) # back to original resolution
 
         # now do the compressor
-        x = ConvBlock(fs, strides=4, dims=3)(x) # down to 8
+        x = ConvBlock(fs, strides=(1,4,4), dims=3)(x) # down to 8
         x = act(x)
-        x = ConvBlock(fs, strides=4, dims=3)(x) # down to 2
+        x = ConvBlock(fs, strides=(2,4,4), dims=3)(x) # down to 2
         x = act(x)
-        x = ConvBlock(fs, strides=2, dims=3)(x) # down to 1
+        x = ConvBlock(fs, strides=(2,2,2), dims=3)(x) # down to 1
         x = act(x)
         x = nn.Conv(features=self.out_shape, kernel_size=(1,)*dims, strides=None)(x)
         x = x.reshape(-1)
