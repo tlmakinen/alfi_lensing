@@ -60,5 +60,5 @@ def compute_variance_catalog(omegaM):
     angle = 2. * np.arctan((L0/N0/2) / dist)
     arcmin_angle = angle * 180. / np.pi * 60.
     arcmin2_pix = arcmin_angle**2
-    sources = 30. / Ncat * arcmin2_pix # change to 30 sources 
+    sources = 30. / Ncat * arcmin2_pix # change to 30 galaxy/arcmin^2 
     return rms**2 / sources
