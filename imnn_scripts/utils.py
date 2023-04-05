@@ -42,7 +42,7 @@ def rotate_sim(k, sim):
 
 
 @jax.jit
-def compute_variance_catalog(omegaM):
+def compute_variance_catalog(omegaM=0.3175):
 
     N0 = 64
     N1 = 64
@@ -57,7 +57,7 @@ def compute_variance_catalog(omegaM):
     rms = 0.3 / 2. # from review (corrected w Hall comment)
     a = 1. / (1. + zmean)
     dist = jc.background.radial_comoving_distance(cosmo, a, log10_amin=-3, steps=256)
-    angle = 2. * np.arctan((L0/N0/2) / dist)
+    angle = 2. * jnp.arctan((L0/N0/2) / dist)
     arcmin_angle = angle * 180. / np.pi * 60.
     arcmin2_pix = arcmin_angle**2
     sources = 30. / Ncat * arcmin2_pix # change to 30 galaxy/arcmin^2 
