@@ -3,6 +3,7 @@ from jax import lax
 import jax.numpy as jnp
 import jax
 import jax_cosmo as jc
+import numpy as np
 
 
 @jax.jit
@@ -62,3 +63,58 @@ def compute_variance_catalog(omegaM=0.3175):
     arcmin2_pix = arcmin_angle**2
     sources = 30. / Ncat * arcmin2_pix # change to 30 galaxy/arcmin^2 
     return rms**2 / sources
+
+
+# make jax version of weiner filter
+
+#@partial(jax.jit, static_argnums=(1,2))
+def wiener_jax(im, kernel, noise=None):
+    """
+    Perform a Wiener filter on an N-dimensional array.
+    Apply a Wiener filter to the N-dimensional array `im`.
+    Parameters
+    ----------
+    im : ndarray
+        An N-dimensional array.
+    mysize : int or array_like, optional
+        A scalar or an N-length list giving the size of the Wiener filter
+        window in each dimension.  Elements of mysize should be odd.
+        If mysize is a scalar, then this scalar is used as the size
+        in each dimension.
+    noise : float, optional
+        The noise-power to use. If None, then noise is estimated as the
+        average of the local variance of the input.
+    Returns
+    -------
+    out : ndarray
+        Wiener filtered result with the same shape as `im`.
+    Notes
+    -----
+    This is a line-for-line implementation of the scipy.signal.wiener function in Jax.
+    """
+    #im = jnp.array(im)
+    #if mysize is None:
+        #mysize = [3] * im.ndim
+       
+    mysize = jnp.array(kernel.shape)
+
+    if mysize.shape == ():
+        mysize = jnp.repeat(mysize.item(), im.ndim)
+
+    # Estimate the local mean
+    lMean = jax.scipy.signal.correlate(im, kernel, 'same') / jnp.prod(mysize, axis=0)
+
+    # Estimate the local variance
+    lVar = (jax.scipy.signal.correlate(im ** 2, kernel, 'same') /
+            jnp.prod(mysize, axis=0) - lMean ** 2)
+
+    # Estimate the noise power if needed.
+    if noise is None:
+        noise = jnp.mean(jnp.ravel(lVar), axis=0)
+
+    res = (im - lMean)
+    res *= (1 - noise / lVar)
+    res += lMean
+    out = jnp.where(lVar < noise, lMean, res)
+
+    return out

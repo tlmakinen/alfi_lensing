@@ -4,6 +4,7 @@ import flax.linen as nn
 
 import jax
 import jax.numpy as jnp
+from utils import wiener_jax
 
 Array = Any
 
@@ -25,6 +26,21 @@ class AsinhLayer(nn.Module):
 
         y = a*jnp.arcsinh(b*inputs*(1./self.b_start) + c) + d
         return y
+    
+
+class WienerLayer(nn.Module):
+    kernel_shape: Sequence[int]
+    noise: Sequence[float]=None
+        
+    def setup(self):
+        self.kernel = jnp.ones(self.kernel_shape)
+    
+    def __call__(self, x):
+        
+        def convolve_filter(x, kernel, noise):
+            return wiener_jax(x, kernel=kernel, noise=noise)
+        
+        return jax.jit(convolve_filter)(x, self.kernel, self.noise)
 
 
 class InceptBlock(nn.Module):
