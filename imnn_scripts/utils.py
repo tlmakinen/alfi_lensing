@@ -118,3 +118,91 @@ def wiener_jax(im, kernel, noise=None):
     out = jnp.where(lVar < noise, lMean, res)
 
     return out
+
+
+def indices_vector(num_tomo=4):
+   """function for getting indices of auto- and cross-spectra
+   for num_tomo tomographic bins"""
+   indices = []
+   cc = 0
+   for catA in range(0,num_tomo,1):
+      for catB in range(catA,num_tomo,1):
+        indices.append([catA, catB])
+        cc += 1
+   return indices
+
+indices = jnp.array(indices_vector())
+
+
+@partial(jax.jit, static_argnums=(2,3,4,5,6,7,8))
+def compute_pk_2d_jax(field, field2=None, 
+                      Nbins=82, 
+                      endidx=24,
+                      L0=1000.,
+                      L1=1000.,
+                      L2=5500.,
+                      N0=64,
+                      N1=64):
+    L0 = L0
+    L1 = L1
+    L2 = L2
+
+    N0 = N0
+    N1 = N1
+
+    # N0 = jnp.shape(field)[0]
+    # N1 = jnp.shape(field)[1]
+    
+    dV = L0*L1/(N0*N1)
+    shat = jnp.fft.fftn(field)*dV
+
+    if field2 is not None:
+        shat2 = jnp.fft.fftn(field2)*dV
+    else:
+        shat2 = shat
+
+    #P = jnp.real(shat)**2 + jnp.imag(shat2)**2
+    #P = jnp.real(P)
+    P = jnp.real(shat * jnp.conj(shat2))
+    
+    ik0 = jnp.fft.fftfreq(N0, d=L0/N0)*2*np.pi
+    ik1 = jnp.fft.fftfreq(N1, d=L1/N1)*2*np.pi
+    
+    #k = jnp.sqrt(ik0[:,None,]**2 + ik1[None,:(N1//2+1)]**2)
+    k = jnp.sqrt(ik0[:,None,]**2 + ik1[None,:]**2)
+
+    Pw, _ = jnp.histogram(k, bins=Nbins, range=(0,1))
+    
+    P, b = jnp.histogram(k, weights=P, bins=Nbins, range=(0,1))
+    P /= L0*L1
+
+    P = jnp.where((Pw > 0), P / Pw, P)
+
+    mask = P > 0
+
+    return b[1:][:endidx],P[:endidx]
+
+
+@jax.jit
+def get_auto_and_cross_spec(single_sim, Nbins=82, endidx=24, 
+                            indices=indices):
+    """get all auto- and cross- power spectra of a complex shear field in Jax"""
+    
+    _compute_pk = lambda d1,d2: compute_pk_2d_jax(d1, field2=d2, Nbins=Nbins, endidx=endidx)
+
+    # outs will be of shape (num_spec, num_bins_per_spec,)
+    pk_outs = jnp.ones((indices.shape[0], endidx))
+    k = jnp.ones((endidx,))
+
+    def body_fun(i, inputs):
+        idx,data,pk_outs,k = inputs
+        k,pk = _compute_pk(data[idx[i, 0], ...], data[idx[i, 1], ...])
+        pk_outs = pk_outs.at[i, ...].set(pk)
+        k = k.at[...].set(k)
+        return idx,data,pk_outs,k
+    
+    init_val = (indices,single_sim,pk_outs,k)
+
+    idx,single_sim,pk_outs,k = jax.lax.fori_loop(lower=0, upper=indices.shape[0], body_fun=body_fun, init_val=init_val)
+
+    return (pk_outs) 
