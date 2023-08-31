@@ -6,7 +6,6 @@
 #PBS -o ${HOME}/data/jobout/sunglass/prior/${PBS_JOBNAME}.${PBS_JOBID}.o
 
 #PBS -l nodes=1:ppn=1,walltime=3:00:00,mem=32GB
-# do not use PBS -l nodes=1:ppn=64,mem=128GB
 
 echo cd-ing...
 cd /home/makinen/repositories/alfi_lensing/sunglass_analysis/

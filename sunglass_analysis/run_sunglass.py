@@ -57,10 +57,11 @@ derivatives_batch_idx = np.arange(0, 1000, step=batch_size)
 fiducial_batch_idx = np.arange(0, 2000, step=batch_size)
 prior_batch_idx = np.arange(0, 10000, step=batch_size)
 
+# WHICH FOLDER ARE WE USING ?
 if folder == "fiducial":
     batch_indices = fiducial_batch_idx
     
-elif folder == "prior"
+elif folder == "prior":
     batch_indices = prior_batch_idx
 
 else:

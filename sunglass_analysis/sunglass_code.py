@@ -59,7 +59,7 @@ comoving_grid = np.arange(1e-3, 4500, 0.1)
 #---------------------------------------------------
 
 
-def redshift_from_comoving_distance(comoving_dist):
+def redshift_from_comoving_distance(comoving_dist, z_table, comoving_grid):
     redshift = np.interp(comoving_dist, comoving_grid, z_table)
     return redshift
 
@@ -123,7 +123,7 @@ def get_kappa_cls_sunglass(fname, outname, infolder, outfolder):
     omega_m = f['scalars/cosmo'][:][0][om_idx]
     sigma_8 = f['scalars/cosmo'][:][0][s8_idx]
     
-    print("----\n this simulation is at \n omega_m = %.3f \n sigma_8 = %.3f \n ----"%(omega_m, sigma_8))
+    print("----\nthis simulation is at \nomega_m = %.3f \nsigma_8 = %.3f \n----"%(omega_m, sigma_8))
     
     print("calculating z table at current cosmology")
     fact = 1.5 * 100**2 * omega_m / c**2
@@ -167,7 +167,7 @@ def get_kappa_cls_sunglass(fname, outname, infolder, outfolder):
         coord[:,0] = r
         coord[:,1] = x_angle
         coord[:,2] = y_angle
-        coord[:,3] = redshift_from_comoving_distance(r)
+        coord[:,3] = redshift_from_comoving_distance(r, z_table, comoving_grid)
     #    coord[:,4] = np.tan(x_angle)/dtan + halfN
     #    coord[:,5] = np.tan(y_angle)/dtan + halfN 
         coord[:,4] = x_angle/dangle + halfN
