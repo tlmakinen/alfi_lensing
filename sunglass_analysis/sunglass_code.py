@@ -227,7 +227,7 @@ def get_kappa_cls_sunglass(fname, outname, infolder, outfolder):
 
     r_pix_los = np.arange(0, Npix_los, 1) * L / Npix_los
     dr        = L/Npix_los
-    redshift  = redshift_from_comoving_distance(r_pix_los)
+    redshift  = redshift_from_comoving_distance(r_pix_los, z_table, comoving_grid)
 
     print("distance", np.min(r_pix_los), np.max(r_pix_los))
     print("redshift", np.min(redshift), np.max(redshift))

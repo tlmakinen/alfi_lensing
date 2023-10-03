@@ -13,7 +13,7 @@ from astropy import units as u
 from astropy.cosmology import FlatLambdaCDM, z_at_value
 from astropy.cosmology import wCDM, z_at_value
 import multiprocessing as mp
-import pylab as plt 
+import pylab as plt
 
 import os,sys
 import time
@@ -25,7 +25,7 @@ import cloudpickle as pickle
 def save_obj(obj, name ):
     with open(name + '.pkl', 'wb') as f:
         pickle.dump(obj, f)
-        
+
 def load_obj(name):
     with open(name, 'rb') as f:
         return pickle.load(f)
@@ -33,21 +33,24 @@ def load_obj(name):
 
 # ------ DEFINE BATCH SIZE
 
-batch_size = 5
+#batch_size = 5
 
 # ------
-            
+
 # STRATEGY
 # save filename list for each folder and set up a batch index to do groups of 100 or so in parallel
-# which means we need 
+# which means we need
 
 
 folder = sys.argv[1]
 batch_idx = int(sys.argv[2])
+batch_size = int(sys.argv[3])
+load_filenames = bool(int(sys.argv[4]))
 
 outfolder = "/data101/makinen/borg_sunglass/" + folder + "/"
 
 sim_path = "/data80/nporqueres/sims_borg_forward/" + folder + "/"
+
 
 simnames = load_obj(folder + "_fnames.pkl")
 sim_outnames = load_obj(folder + "_fnames_out.pkl")
@@ -60,7 +63,7 @@ prior_batch_idx = np.arange(0, 10000, step=batch_size)
 # WHICH FOLDER ARE WE USING ?
 if folder == "fiducial":
     batch_indices = fiducial_batch_idx
-    
+
 elif folder == "prior":
     batch_indices = prior_batch_idx
 
@@ -84,18 +87,18 @@ counter = 0
 
 
 for i,fname in enumerate(simnames):
-    
+
     print("PROCESSING SIMULATION %d OF %d"%(i+1, len(simnames)))
     print("-----")
-    
+
     outname = sim_outnames[i]
-    
+
     get_kappa_cls_sunglass(fname, outname, infolder=sim_path, outfolder=outfolder)
-    
+
     counter += 1
-    
-    
-    
+
+
+
 t2 = time.time()
 
-print("time to process %d sims: "%(counter + 1), t2 - t1, " seconds") 
+print("time to process %d sims: "%(counter + 1), t2 - t1, " seconds")

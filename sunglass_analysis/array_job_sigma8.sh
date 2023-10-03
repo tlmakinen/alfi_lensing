@@ -19,15 +19,15 @@ module load cmake
 module load inteloneapi/2023.0
 module load intelpython/3-2022.2.1
 
- 
+
 XLA_FLAGS=--xla_gpu_cuda_data_dir=\${CUDA_PATH}
 export XLA_FLAGS
- 
+
 source /home/makinen/venvs/fastjax/bin/activate
 
 echo running script...
 echo "arrayind is ${PBS_ARRAYID}"
-python run_sunglass.py sigma8 ${PBS_ARRAYID}
+python run_sunglass.py sigma8 ${PBS_ARRAYID} 5
 
 echo done...
 
