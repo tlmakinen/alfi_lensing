@@ -16,6 +16,7 @@ import multiprocessing as mp
 import pylab as plt 
 
 import os,sys
+import time
 
 
 
@@ -152,140 +153,131 @@ def get_kappa_cls_sunglass(fname, outname, infolder, outfolder):
     # Plot the nearby particles:
 
     rmax = 120
+    
 
-    # Assign particles to pixels, or read in from file.
+    # Assign particles to voxels in 3D (anglex,angley,radius):
 
-    if(process_particles):
+    time0 = time.time()
 
-        anglemax  = np.arctan(0.5)
-        dangle    = anglemax/halfN
+    anglemax  = np.arctan(0.5)
+    dangle    = anglemax/halfN
 
-        coord = np.empty((Npart,7))
-        pixel_particles = np.empty((N,N,6,int(1.2*Npart/(N*N))))
-        pixel_count = np.zeros((N,N),dtype=int)
+    # coord contains various particle coordinates:
+    coord      = np.empty((Npart,6))
 
-        coord[:,0] = r
-        coord[:,1] = x_angle
-        coord[:,2] = y_angle
-        coord[:,3] = redshift_from_comoving_distance(r, z_table, comoving_grid)
-    #    coord[:,4] = np.tan(x_angle)/dtan + halfN
-    #    coord[:,5] = np.tan(y_angle)/dtan + halfN 
-        coord[:,4] = x_angle/dangle + halfN
-        coord[:,5] = y_angle/dangle + halfN 
+    coord[:,0] = r
+    coord[:,1] = x_angle
+    coord[:,2] = y_angle
+    coord[:,3] = redshift_from_comoving_distance(r, z_table, comoving_grid)
+    coord[:,4] = x_angle/dangle + halfN  # x position (index)
+    coord[:,5] = y_angle/dangle + halfN  # y position (index)
 
-    # Find a faster way than this!
-    # Also, it leaves an empty row and column.
+    print('Coordinates assigned')
 
-        for p in range(Npart):
-            if(np.mod(p,10000000)==0):
-                print(p)
-            ix = int(coord[p,4])
-            iy = int(coord[p,5])
+    print('Time:',time.time()-time0)
 
-    # Count if it the pixel index is actually in the box, and throw out particles with r>L:
-    # I think ix=0 and iy=0 remain empty (fix this later)
-
-            if(np.abs(ix-halfN)<halfN):
-                if(np.abs(iy-halfN)<halfN):
-                    if(coord[p,0]<L):
-                        pixel_particles[ix,iy,0:4,pixel_count[ix,iy]]=coord[p,0:4]
-                        pixel_count[ix,iy]+=1
-
-        print('Max number of particles in a pixel:',np.max(pixel_count))
-
-    # The sorting doesn't actually help yet, but could streamline the sums later:
-
-        for ix in range(N):
-            for iy in range(N):
-
-                np.ndarray.sort(pixel_particles[ix,iy,:,0:pixel_count[ix,iy]],axis=1)
-
-        #np.save("Sorted_"+str(L)+"_"+str(N)+"_"+str(Npix_los)+"_lightcone_particles", pixel_particles[:,:,:,0:np.max(pixel_count)])
-        #np.save("Sorted_"+str(L)+"_"+str(N)+"_"+str(Npix_los)+"_lightcone_count", pixel_count)
-
-        #print("Sorted catalogue saved")
-        
-    else:   
-
-    # I don't think this is working:
-
-        print('Loading catalogue')
-
-        pixel_particles = np.load("Sorted_"+str(L)+"_"+str(N)+"_"+str(Npix_los)+"_lightcone_particles.npy") 
-        pixel_count = np.load("Sorted_"+str(L)+"_"+str(N)+"_"+str(Npix_los)+"_lightcone_count.npy") 
-
-        print('Catalogue loaded')
+    new_pixel_count = np.zeros((N+1,N+1,Npix_los*3),dtype=int)
+    xpos            = np.empty(Npart,dtype=int)
+    ypos            = np.empty(Npart,dtype=int) 
+    kappa           = np.zeros((N,N,Npix_los))
+    radial_bin      = np.zeros(Npart,dtype=int)
+    
+    print("KAPPA SHAPE: ", kappa.shape)
 
 
-    # Compute the convergence on spherical shells (they are spherical - the last index is a radius)
+    # Radii of thin radial shells (on which to compute kappa, which is then [weighted] summed to do tomography):
+    r_pix_los = np.arange(0, Npix_los, 1) * L / Npix_los
+    dr        = L/Npix_los
+    redshift  = redshift_from_comoving_distance(r_pix_los, z_table, comoving_grid)
+
+    time2 = time.time()
+
+    xpos[:]       = np.round(coord[:,4]).astype(int)
+    ypos[:]       = np.round(coord[:,5]).astype(int)
+
+    # Put particles that are out of the field (either on the sky, or too far away) on to the edges/furthest slice 
+    # (i.e. elements labelled by any of [N,N,Npix_los] are excluded particles, ignored later):
+
+    radial_bin[:] = np.where(coord[:,0]<L,np.round(coord[:,0]/dr).astype(int),Npix_los)
+
+    xpos[:] = np.where(xpos[:] > -1, xpos[:], N)
+    xpos[:] = np.where(xpos[:] <  N, xpos[:], N)
+
+    ypos[:] = np.where(ypos[:] > -1, ypos[:], N)
+    ypos[:] = np.where(ypos[:] <  N, ypos[:], N)
+
+    # Compute the convergence on spherical shells (they *are* spherical - the last index is a radius)
 
     # Improve this later: the volume of each narrow pyramid changes slightly across the box
 
     approx_solid_angle = (np.arctan(0.5)/halfN)**2
 
-    kappa = np.zeros((N,N,Npix_los))
-
-    r_pix_los = np.arange(0, Npix_los, 1) * L / Npix_los
-    dr        = L/Npix_los
-    redshift  = redshift_from_comoving_distance(r_pix_los, z_table, comoving_grid)
-
-    print("distance", np.min(r_pix_los), np.max(r_pix_los))
-    print("redshift", np.min(redshift), np.max(redshift))
-
-    # Note change in w to include dr
+    # Note the weight include dr and the Jacobian from z to r:
 
     w = weights(redshift) * Jacobian(redshift, omega_m) * dr
 
-    dSum1 = np.zeros(Npix_los)
-    dSum2 = np.zeros(Npix_los)
-    Sum1  = np.zeros(Npix_los)
-    Sum2  = np.zeros(Npix_los)
+    # Declare arrays to do the Sunglass summation:
 
-    # This might not be very efficient because of for loops. The particles are ordered in increasing r, 
-    # which might also be useful.
+    dSum1 = np.zeros((N+1,N+1,Npix_los+1))
+    dSum2 = np.zeros((N+1,N+1,Npix_los+1))
+    Sum1  = np.zeros((N+1,N+1,Npix_los))
+    Sum2  = np.zeros((N+1,N+1,Npix_los))
+
+    # Overall amplitude to change sums to kappa:
+
+    factor = fact/n_average/approx_solid_angle
+    
+    
+    # This might not be very efficient because of for loops.  The sum over particles (part) is the slowest step. 
 
     # dSum1 and dSum2 collect the contributions to the sunglass sums from particles in the narrow r ranges.
-    # Sum1 and Sum2 then add them (rather inefficiently, but it's a small calculation)
+    # Sum1 and Sum2 then add them (rather inefficiently, but this a small calculation)
 
-    for ix in range(N):
-        for iy in range(N):
+    for part in range(Npart): 
 
-            dSum1[:] = 0.0
-            dSum2[:] = 0.0
+        oneplusz = 1.+coord[part,3]
+        ix = xpos[part]
+        iy = ypos[part]
+        jbin = radial_bin[part]
 
-            rpart = pixel_particles[ix,iy,0,:]
-            zpart = pixel_particles[ix,iy,3,:]
-            apart = 1./(1.+zpart)
+        dSum1[ix,iy,jbin]  += oneplusz/coord[part,0]
+        dSum2[ix,iy,jbin]  += oneplusz
 
-            for p in range(pixel_count[ix,iy]):
-                jbin = int(rpart[p]/dr)
-                dSum1[jbin] += 1./(rpart[p]*apart[p])
-                dSum2[jbin] += 1./apart[p]
+    # This line can be removed for speed but can be a useful diagnostic - the number of particles per pixel shouln't
+    # vary systematically with position in the grid.
+    #    new_pixel_count[ix,iy,jbin] += 1
 
-            for j in range(1, Npix_los):
-                Sum1[j]=np.sum(dSum1[0:j])
-                Sum2[j]=np.sum(dSum2[0:j])
+    # kappa contains the convergence field on spherical shells, finely-spaced (shell j indexed last)
 
-                rj = r_pix_los[j]
-                kappa[ix,iy,j] =  fact*(Sum1[j]-Sum2[j]/rj ) /n_average / approx_solid_angle
+    for j in range(1, Npix_los):
+        Sum1[:,:,j]=np.sum(dSum1[:,:,0:j],axis=2)
+        Sum2[:,:,j]=np.sum(dSum2[:,:,0:j],axis=2)
 
+        kappa[:,:,j] =  factor*(Sum1[:N,:N,j]-Sum2[:N,:N,j]/r_pix_los[j])
 
-    # Calculate kappa for a tomographic bin by integrating over the radial window.
-    # w includes the weight, the Jacobian, and the element dr.
+        # Subtract the mean:
+        kappa[:,:,j] += -np.average(kappa[:,:,j])
 
+    time3 = time.time()
+
+    print('Time (new method) =',time3-time2)
+    
+    # Calculate kappa for a tomographic bin (kappa_tomo) by integrating over the radial window.
+    # w includes the n(z) weight, the Jacobian, and the element dr.
+    
+    print("w", w.shape)
+    print("kappa", kappa.shape)
+    
     kappa_tomo = np.zeros((N,N))
+    
     for i in range(0,N):
       for j in range(0,N):
         kappa_tomo[i,j] = np.sum(kappa[i,j,:] * w)
 
-    # Compute the average empirically, and subtract (note that there is some large-scale
-    # feature that is probably related to sinc dependence of pyramid area.  Fix later):
+    # Compute the average empirically, and subtract
 
     kappa_tomo=kappa_tomo - np.average(kappa_tomo)
-
-
-    np.savez(kappa_outname, kappa_tomo=kappa_tomo, kappa=kappa)
-
+    
 
     # Next output the Cls
 

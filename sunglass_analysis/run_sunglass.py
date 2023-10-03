@@ -45,7 +45,7 @@ def load_obj(name):
 folder = sys.argv[1]
 batch_idx = int(sys.argv[2])
 batch_size = int(sys.argv[3])
-load_filenames = bool(int(sys.argv[4]))
+#load_filenames = bool(int(sys.argv[4]))
 
 outfolder = "/data101/makinen/borg_sunglass/" + folder + "/"
 
