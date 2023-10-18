@@ -41,9 +41,9 @@ def get_shear(kappa, N0, N1, L0, L1, Ncat=4):
 	return shearR + 1j * shearI
 
 
-def get_data(f):
-	dataR = np.zeros((4, 64, 64))
-	dataI = np.zeros((4, 64, 64))
+def get_data(f, ntomo=4, N=64):
+	dataR = np.zeros((ntomo, N, N))
+	dataI = np.zeros((ntomo, N, N))
 
 	bin0 = f['tomo0'][:]
 	bin1 = f['tomo1'][:]
@@ -57,18 +57,19 @@ def get_data(f):
 
 	return dataR, dataI
 
-def load_fiducial(seed_index, path):
+
+def load_fiducial(seed_index, path, N=64):
     
     data = []
     
     for i,seed in enumerate(seed_index):
-        _dat = np.ones((8, 64, 64))
+        _dat = np.ones((8, N, N))
 
         f = h5.File(path + 'sim_fields_%d.h5'%(seed), 'r')
 
         print('loading file', path + 'sim_fields_%d.h5'%(seed))
 
-        dataR, dataI = get_data(f)
+        dataR, dataI = get_data(f, N=N)
 
         _dat[::2, :, :] = dataR
         _dat[1::2, :, :] = dataI
@@ -83,6 +84,7 @@ def load_fiducial(seed_index, path):
 def load_derivatives(seed_index,
                      omegam_path,
                      sigma8_path,
+                     N=64,
                      Om_fid=0.3175,
                      s8_fid=0.800,
                      d_Om=0.05,
@@ -103,9 +105,9 @@ def load_derivatives(seed_index,
         
         # '/data80/nporqueres/borg_sims/omegaM/seed_matching_06/sim_fields_0.55_%d.h5'%(seed)
         # first do OmegaM-
-        _dat = np.ones((8, 64, 64))
+        _dat = np.ones((8, N, N))
         f = h5.File(omegam_path + 'sim_fields_%.04f_%d.h5'%(Om_minus, seed), 'r')
-        dataR, dataI = get_data(f)
+        dataR, dataI = get_data(f, N=N)
 
         _dat[::2, :, :] = dataR
         _dat[1::2, :, :] = dataI
@@ -113,10 +115,10 @@ def load_derivatives(seed_index,
         data.append(_dat)
 
         # then sigma8-
-        _dat = np.ones((8, 64, 64))
+        _dat = np.ones((8, N, N))
         f = h5.File(sigma8_path + 'sim_fields_%.03f_%d.h5'%(s8_minus, seed), 'r')
 
-        dataR, dataI = get_data(f)
+        dataR, dataI = get_data(f, N=N)
 
         _dat[::2, :, :] = dataR
         _dat[1::2, :, :] = dataI
@@ -125,9 +127,9 @@ def load_derivatives(seed_index,
 
 
         # then Omega+ 0.65
-        _dat = np.ones((8, 64, 64))
+        _dat = np.ones((8, N, N))
         f = h5.File(omegam_path + 'sim_fields_%.04f_%d.h5'%(Om_plus, seed), 'r')
-        dataR, dataI = get_data(f)
+        dataR, dataI = get_data(f, N=N)
 
         _dat[::2, :, :] = dataR
         _dat[1::2, :, :] = dataI
@@ -135,9 +137,9 @@ def load_derivatives(seed_index,
         data.append(_dat)
 
         # then sigma8 +
-        _dat = np.ones((8, 64, 64))
+        _dat = np.ones((8, N, N))
         f = h5.File(sigma8_path + 'sim_fields_%.03f_%d.h5'%(s8_plus, seed), 'r')
-        dataR, dataI = get_data(f)
+        dataR, dataI = get_data(f, N=N)
 
         _dat[::2, :, :] = dataR
         _dat[1::2, :, :] = dataI
@@ -152,7 +154,7 @@ def load_derivatives(seed_index,
 
 
 
-def load_h0(seed_index):
+def load_h0(seed_index, N=64):
     # iterate over folders [Om_m, s8_m, Om_p, s8_p, ...]
     
     data = []
@@ -164,9 +166,9 @@ def load_h0(seed_index):
         
         # '/data80/nporqueres/borg_sims/omegaM/seed_matching_06/sim_fields_0.55_%d.h5'%(seed)
         # first do h0-
-        _dat = np.ones((8, 64, 64))
+        _dat = np.ones((8, N, N))
         f = h5.File('/data80/nporqueres/borg_sims_fixed/h0/sim_fields_0.6511_%d.h5'%(seed), 'r')
-        dataR, dataI = get_data(f)
+        dataR, dataI = get_data(f, N=N)
 
         _dat[::2, :, :] = dataR
         _dat[1::2, :, :] = dataI
@@ -175,9 +177,9 @@ def load_h0(seed_index):
 
 
         # then h0+
-        _dat = np.ones((8, 64, 64))
+        _dat = np.ones((8, N, N))
         f = h5.File('/data80/nporqueres/borg_sims_fixed/h0/sim_fields_0.6911_%d.h5'%(seed), 'r')
-        dataR, dataI = get_data(f)
+        dataR, dataI = get_data(f, N=N)
 
         _dat[::2, :, :] = dataR
         _dat[1::2, :, :] = dataI
@@ -191,6 +193,7 @@ def load_h0(seed_index):
 
 def load_delfi_data(seed_index, sim_fnames=None, 
                             sim_fieldfnames=None,
+                            N=64,
                             path="/data80/nporqueres/borg_sims/uniform_prior_sims/"):
 
     #data = np.zeros((num_sims,) + input_shape)
@@ -201,7 +204,7 @@ def load_delfi_data(seed_index, sim_fnames=None,
         seed_index = sim_fnames
     
     for i,seed in enumerate(seed_index):
-        _dat = np.ones((8, 64, 64))
+        _dat = np.ones((8, N, N))
 
         if sim_fnames is None:
             name = path + 'sim_%d.h5'%(seed)
@@ -216,7 +219,7 @@ def load_delfi_data(seed_index, sim_fnames=None,
         f = h5.File(fieldname, 'r')
         g = h5.File(name, 'r') # for cosmo params
         
-        dataR, dataI = get_data(f)
+        dataR, dataI = get_data(f, N=64)
 
         _dat[::2, :, :] = dataR
         _dat[1::2, :, :] = dataI
@@ -256,6 +259,7 @@ prior_save_dir = configs["priordir"]
 
 omegam_stepsize = configs["borg_data_configs"]["omegaM_stepsize"]
 sigma8_stepsize = configs["borg_data_configs"]["sigma8_stepsize"]
+N = configs["borg_data_configs"]["N"]
 
 
 params = ['omegaM', 'sigma8']
@@ -268,7 +272,7 @@ s8_fid = 0.800
 
 dataset = sys.argv[2]
 
-num_prior_sims = 10000
+num_prior_sims = 5000
 
 
 
@@ -281,8 +285,8 @@ print("SAVING PRIOR DATA TO: ", prior_save_dir)
 if dataset == "fiducial":
 
     print("doing fiducial set")
-    fid = load_fiducial(np.arange(1000), path=fiducial_path)
-    val_fid = load_fiducial(np.arange(1000, 2000), path=fiducial_path)
+    fid = load_fiducial(np.arange(1000), path=fiducial_path, N=N)
+    val_fid = load_fiducial(np.arange(1000, 2000), path=fiducial_path, N=N)
 
 
     np.save(outdir + 'noisefree_fid', fid)
@@ -292,8 +296,8 @@ if dataset == "fiducial":
 elif dataset == "derivatives":
 
     print("doing derivatives")
-    dervs = load_derivatives(np.arange(0, 250), omegam_path, sigma8_path, d_Om=omegam_stepsize)
-    val_dervs = load_derivatives(np.arange(250, 500), omegam_path, sigma8_path, d_Om=omegam_stepsize)
+    dervs = load_derivatives(np.arange(0, 250), omegam_path, sigma8_path, d_Om=omegam_stepsize, N=N)
+    val_dervs = load_derivatives(np.arange(250, 500), omegam_path, sigma8_path, d_Om=omegam_stepsize, N=N)
 
 
     np.save(outdir + 'noisefree_derv_smallstep', dervs)
@@ -305,7 +309,7 @@ elif dataset == "h0":
 
     outdir = '/data80/makinen/borg_sims_fixed/'
 
-    h0_dervs = load_h0(np.arange(500))
+    h0_dervs = load_h0(np.arange(500), N=N)
     np.save(outdir + 'noisefree_h0_dervs', h0_dervs)
 
 ### ELSE DO PRIOR
@@ -336,6 +340,7 @@ else:
     dat, params = load_delfi_data(seed_index=seed_index, 
                             sim_fnames=None, 
                             sim_fieldfnames=None,
+                            N=N,
                             path=prior_path)
 
     np.save(prior_save_dir + "noisefree_prior_sims", dat)

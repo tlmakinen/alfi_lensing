@@ -2,7 +2,7 @@
     "datadir": "/data80/makinen/borg_sims_fixed/training_data/",
     "savedir": "/data80/makinen/borg_sims_fixed/imnn_results/twoparam/smallstep/retrain/",
     "modeldir": "/data80/makinen/borg_sims_fixed/imnn_results/twoparam/smallstep/",
-    "priordir": "/data80/makinen/borg_sims_fixed/prior_data/",
+    "priordir": "/data80/makinen/borg_sims_fixed/prior_data_128/",
     "target_path": "/data80/nporqueres/borg_sims_fixed/mock_data/",
     "patience": 4000,
     "filters":  20,
@@ -15,10 +15,10 @@
     "act": "swish",
 
     "borg_data_configs": { 
-        "fiducial_path": "/data80/nporqueres/borg_sims_fixed/fiducial/",
-        "omegaM_path": "/data80/nporqueres/borg_sims_fixed/omegaM/",
-        "sigma8_path": "/data80/nporqueres/borg_sims_fixed/sigma8/",
-        "prior_path": "/data80/nporqueres/borg_sims_fixed/new_uniform_prior/",
+        "fiducial_path": "/data80/nporqueres/borg_sims_fixed/fiducial_128/",
+        "omegaM_path": "/data80/nporqueres/borg_sims_fixed/omegaM_128/",
+        "sigma8_path": "/data80/nporqueres/borg_sims_fixed/sigma8_128/",
+        "prior_path": "/data80/nporqueres/borg_sims_fixed/uniform_prior_128/",
         "omegaM_stepsize": 0.01,
         "sigma8_stepsize": 0.015,
         "N": 128
